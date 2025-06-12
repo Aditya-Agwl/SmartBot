@@ -1,8 +1,15 @@
-class AnalyzerAgent:
-    def analyze(self, scraped_data, keywords):
-        # Simple keyword match scoring
-        def score(item):
-            return sum(1 for word in keywords if word.lower() in item['title'].lower())
+# agents/analyzer_agent.py
+from difflib import SequenceMatcher
 
-        scored = sorted(scraped_data, key=score, reverse=True)
-        return scored[:5]  # Top 5 results
+def score_similarity(query, text):
+    return SequenceMatcher(None, query.lower(), text.lower()).ratio()
+
+def analyze_results(query, scraped_data):
+    scored = []
+    for item in scraped_data:
+        text = item.get("title", "") + " " + item.get("body", "")
+        score = score_similarity(query, text)
+        item["score"] = score
+        scored.append(item)
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:3]  # Top 3 results

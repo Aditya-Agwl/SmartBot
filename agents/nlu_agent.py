@@ -1,76 +1,56 @@
-import openai
+# agents/nlu_agent.py
+import os
+import json
+from google import genai
 
-openai.api_key = "YOUR_API_KEY"  # Replace with your actual key or load from env variable
+# Initialize Gemini
+client = genai.Client(api_key="AIzaSyAZOt0p0qkKaPmXy8ElPv6ekHM0dmetbpw")
+
+# Define what fields are expected per intent
+EXPECTED_FIELDS = {
+    "shop_product": ["product", "brand", "budget", "platform", "color", "type", "features"],
+    "book_movie_ticket": ["movie_name", "location", "time", "format", "seat_type"],
+    "flight_booking": ["from", "to", "date", "budget", "airlines", "class"],
+    "travel_plan": ["from", "to", "date", "mode", "duration"]
+}
 
 def parse_user_input(user_input):
     prompt = f"""
-    You are an AI agent that extracts structured intent and relevant entities from natural language input.
+You are an NLU agent. Your job is to analyze user input, identify their intent, and extract any known entities.
 
-    Given a user query, return a JSON with the following structure:
+Then, based on the intent, identify which expected entities are still missing.
 
-    {{
-    "intent": "<user's intent in snake_case>", 
-    "entities": {{
-        "product": "",
-        "location": "",
-        "from": "",
-        "to": "",
-        "date": "",
-        "budget": "",
-        "movie_name": "",
-        "time": "",
-        "platform": "",
-        "brand": "",
-        "category": "",
-        ...
-    }}
-    }}
+Output this strictly in JSON format like:
+{{
+  "intent": "shop_product",
+  "category": "headphones",
+  "entities": {{
+    "product": "headphones",
+    "brand": ["boAt", "JBL"],
+    "budget": "2000",
+    "platform": ["Flipkart", "Amazon"]
+  }},
+  "missing": ["type", "color", "features"]
+}}
 
-    If any information is missing, leave it as an empty string or null.
+Only include `category` if applicable (e.g., for shopping).
 
-    Example:
-    Query: "Book two tickets for Inception tonight in Delhi"
-    →
-    {{
-    "intent": "book_movie_ticket",
-    "entities": {{
-        "movie_name": "Inception",
-        "time": "tonight",
-        "location": "Delhi"
-    }}
-    }}
+User input: "{user_input}"
+ONLY return a valid JSON object. Do not include markdown or extra commentary.
+"""
 
-    Query: "Buy a white cotton shirt under 1000 rupees from Flipkart"
-    →
-    {{
-    "intent": "shop_product",
-    "entities": {{
-        "product": "white cotton shirt",
-        "budget": "1000",
-        "platform": "Flipkart"
-    }}
-    }}
-
-    Query: "{user_input}"
-    →
-    """
-
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant extracting intent and entities."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
-    )
-
-    # Parse JSON output
-    import json
-    text = response.choices[0].message.content.strip()
     try:
-        parsed = json.loads(text)
-        return parsed
-    except json.JSONDecodeError:
-        # fallback if OpenAI doesn't return perfect JSON
-        return {"intent": None, "entities": {}}
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",  # or gemini-1.5-pro if you're using that
+            contents=prompt
+        )
+        result = response.text.strip()
+
+        # Clean up just in case
+        result = result.replace("```json", "").replace("```", "")
+
+        return json.loads(result)
+    except Exception as e:
+        print("❌ Failed to parse NLU output:", e)
+        print("Raw output:", result)
+        return {"intent": None, "entities": {}, "missing": []}

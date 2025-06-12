@@ -1,5 +1,5 @@
 # Bytecode
-**/__pycache__/*
+agents/__pycache__/*
 *.pyc
 *.pyo
 
