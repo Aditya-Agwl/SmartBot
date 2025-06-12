@@ -12,4 +12,4 @@ def analyze_results(query, scraped_data):
         item["score"] = score
         scored.append(item)
     scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:3]  # Top 3 results
+    return scored[:5]  # Top 5 results
