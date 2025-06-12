@@ -1,8 +1,11 @@
 # agents/entity_updater.py
+import os
 from google import genai
 import json
 
-client = genai.Client(api_key="AIzaSyAZOt0p0qkKaPmXy8ElPv6ekHM0dmetbpw")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 def extract_entity_from_answer(intent, previous_question, user_answer):
     prompt = f"""
